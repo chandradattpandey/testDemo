@@ -12,42 +12,48 @@ async function userRegister(req, res) {
         });
         let userMail = await Schema.findOne({ 'email': req.body.email });
         if (userMail) {
-            res.status(400).json({success: false, messege: 'user already registered' })
+            res.status(400).json({ success: false, messege: 'user already registered' })
         } else {
             let result = await user.save();
             if (!result) {
                 res.status(400).json({ success: false, messege: 'user not register' });
             } else {
-                console.log(result, 'line17');
                 res.status(200).json({ success: true, messege: 'user register', result });
             };
         };
     } catch (err) {
-        res.status(400).json({ success: false, messege: 'error', err });
+        res.status(400).json({ success: false, messege: 'user not register', err });
     };
 };
 
 
 async function userLogin(req, res) {
     try {
-        let userId = req.params.id;
+        let userMail = req.body.email;
         let userPsw = req.body.password;
-        let data = await Schema.findById({ '_id': userId });
+        let data = await Schema.findOne({ 'email': userMail });
         if (!data) {
             res.status(400).json({ success: false, messege: 'user not registered' });
         } else {
-            data.comparePassword(userPsw, function (err, isMatch) {
-                if (err) {
-                    res.status(400).json({ success: false, error: 'user not registered', err });
-                } else if (!isMatch) {
-                    res.status(400).json({ success: false, error: 'password not match' });
-                } else {
-                    res.status(200).json({ success: true, messege: 'user login', data });
-                }
-            });
+            let role = data.role;
+            if (role == 'user') {
+                data.comparePassword(userPsw, function (err, isMatch) {
+                    if (err) {
+                        res.status(400).json({ success: false, messege: 'user not registered', err });
+                    } else {
+                        if (!isMatch) {
+                            res.status(400).json({ success: false, messege: 'password not match' });
+                        } else {
+                            res.status(200).json({ success: true, messege: 'user login', data });
+                        };
+                    };
+                });
+            } else {
+                res.status(400).json({ messege: 'only users are allowed' });
+            };
         };
     } catch (err) {
-        res.status(400).json({ success: false, error: err });
+        res.status(400).json({ success: false, messege: err });
     };
 };
 
@@ -58,16 +64,16 @@ async function createTodo(req, res) {
             heading: req.body.heading,
             description: req.body.description,
             status: req.body.status,
-            creation_date: new Date()
+            registration_date: new Date()
         });
         let data = await toDo.save();
         if (!data) {
-            res.status(400).json({ success: false, error: 'todo not create' });
+            res.status(400).json({ success: false, messege: 'todo not create' });
         } else {
             res.status(200).json({ success: true, messege: 'todo created', data });
         };
     } catch (err) {
-        res.status(400).json({ success: false, error: 'error', err })
+        res.status(400).json({ success: false, messege: 'error', err })
     };
 };
 
@@ -82,12 +88,12 @@ async function editTodo(req, res) {
             { $set: { 'heading': heading, 'description': description, 'status': status } },
             { new: true });
         if (!result) {
-            res.status(400).json({ success: false, error: 'Todo not found' });
+            res.status(400).json({ success: false, messege: 'Todo not found' });
         } else {
             res.status(200).json({ success: true, messege: 'Todo update successfully', result });
         };
     } catch (err) {
-        res.status(400).json({ success: false, error: 'Todo not found', err });
+        res.status(400).json({ success: false, messege: 'Todo not found', err });
     };
 };
 
@@ -101,8 +107,94 @@ async function deleteTodo(req, res) {
             res.status(200).json({ success: true, messege: 'task deleted', result });
         };
     } catch (err) {
-        res.status(400).json({ success: false, error: 'user not found', err });
+        res.status(400).json({ success: false, messege: 'user not found', err });
     };
 };
 
-module.exports = { userRegister, userLogin, createTodo, editTodo, deleteTodo };
+async function adminRegister(req, res) {
+    try {
+        let admin = new Schema({
+            name: req.body.name,
+            email: req.body.email,
+            password: req.body.password,
+            role: 'admin',
+            creation_date: new Date()
+        });
+        let adminMail = await Schema.findOne({ 'email': req.body.email });
+        if (adminMail) {
+            res.status(400).json({ success: false, messege: 'admin already registered' });
+        } else {
+            let data = await admin.save();
+            if (!data) {
+                res.status(400).json({ success: false, messege: 'admin not register' });
+            } else {
+                res.status(200).json({ messege: 'admin register' });
+            }
+        };
+    } catch (err) {
+        res.status(400).json({ success: false, messege: 'admin not register', err });
+    };
+};
+
+async function adminLogin(req, res) {
+    try {
+        let email = req.body.email;
+        let password = req.body.password;
+        let data = await Schema.findOne({ email: email });
+        if (!data) {
+            res.status(400).json({ success: false, messege: 'admin not found' });
+        } else {
+            let role = data.role;
+            if (role == 'admin') {
+                data.comparePassword(password, function (err, isMatch) {
+                    if (err) {
+                        res.status(400).json({ success: false, messege: 'admin not exist', err });
+                    } else {
+                        if (!isMatch) {
+                            res.status(400).json({ success: false, messege: 'password not match' });
+                        } else {
+                            res.status(200).json({ success: true, messege: 'admin logged in' });
+                        };
+                    }
+                });
+            } else {
+                res.status(400).json({ messege: 'only admin are allowed' });
+            };
+        };
+    } catch (err) {
+        res.status(400).json({ messege: 'admin not found', err });
+    };
+};
+
+
+async function allTodoList(req, res) {
+    try {
+        let list = await todoSchema.find({});
+        if (!list) {
+            res.status(400).json({ messege: 'list not found' });
+        } else {
+            res.status(200).json({ success: true, messege: 'todo list', list });
+        };
+    } catch (err) {
+        res.status(400).json({ messege: 'todo list not found', err });
+    };
+};
+
+
+async function allUsers(req, res) {
+    try {
+        let users = await Schema.find({});
+        if (!users) {
+            res.status(400).json({ success: false, messege: 'users are not found' });
+        } else {
+            res.status(200).json({ success: true, messege: 'users list', users });
+        };
+    } catch (err) {
+        res.status(400).json({ success: false, messege: 'users list not found', err });
+    };
+};
+
+module.exports = {
+    adminRegister, adminLogin, userRegister, userLogin, createTodo,
+    editTodo, deleteTodo, allTodoList, allUsers
+};

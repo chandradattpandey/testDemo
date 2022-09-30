@@ -3,6 +3,7 @@ const Schema = mongoose.Schema;
 const bcrypt = require('bcrypt');
 
 const userSchema = new Schema({
+  userId : { type: String,default:`UID-${Date.now()}`},
   name: { type: String },
   email: { type: String },
   password: { type: String },
@@ -26,7 +27,7 @@ userSchema.pre("save", function (next) {
             return next(hashError)
           }
 
-          user.password = hashPassword
+          user.password = hashPassword;
           next()
         })
       }
