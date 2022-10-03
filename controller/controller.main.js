@@ -1,5 +1,6 @@
 const Schema = require('../models/model');
-const todoSchema = require('../models/todoSchema')
+const todoSchema = require('../models/todoSchema');
+var cookie = require('cookie');
 
 async function userRegister(req, res) {
     try {
@@ -44,7 +45,8 @@ async function userLogin(req, res) {
                         if (!isMatch) {
                             res.status(400).json({ success: false, messege: 'password not match' });
                         } else {
-                            res.status(200).json({ success: true, messege: 'user login', data });
+                            let token = data.generateToken();
+                            res.header('x-auth-token', token).status(200).json({ success: true, messege: 'user login', data, token });
                         };
                     };
                 });
@@ -53,7 +55,7 @@ async function userLogin(req, res) {
             };
         };
     } catch (err) {
-        res.status(400).json({ success: false, messege: err });
+        res.status(400).json({ success: false, messege: 'user not found', err });
     };
 };
 
@@ -64,7 +66,7 @@ async function createTodo(req, res) {
             heading: req.body.heading,
             description: req.body.description,
             status: req.body.status,
-            registration_date: new Date()
+            creation_date: new Date()
         });
         let data = await toDo.save();
         if (!data) {
@@ -158,11 +160,11 @@ async function adminLogin(req, res) {
                     }
                 });
             } else {
-                res.status(400).json({ messege: 'only admin are allowed' });
+                res.status(400).json({success: false, messege: 'only admin are allowed' });
             };
         };
     } catch (err) {
-        res.status(400).json({ messege: 'admin not found', err });
+        res.status(400).json({success: false, messege: 'admin not found', err });
     };
 };
 
@@ -171,12 +173,12 @@ async function allTodoList(req, res) {
     try {
         let list = await todoSchema.find({});
         if (!list) {
-            res.status(400).json({ messege: 'list not found' });
+            res.status(400).json({success: false, messege: 'list not found' });
         } else {
             res.status(200).json({ success: true, messege: 'todo list', list });
         };
     } catch (err) {
-        res.status(400).json({ messege: 'todo list not found', err });
+        res.status(400).json({success: false, messege: 'todo list not found', err });
     };
 };
 
@@ -194,7 +196,56 @@ async function allUsers(req, res) {
     };
 };
 
+async function logout(req, res) {
+    try {
+
+    } catch (err) {
+        res.status(400).json({ success: false, messege: 'error', err });
+    };
+}
+
+
+async function searchTodo(req, res) {
+    try {
+        let key = req.params.key;
+        // let getStatus = await todoSchema.find({ status: { $regex: key } });
+        // if (!getStatus) return res.status(400).json({ messege: 'error' });
+
+        // res.status(200).json({success: true, messege: 'todo list...', getStatus });
+
+        // let getStatus = await todoSchema.find({ status: { $regex: key } });
+        // console.log('getstatus --  ',getStatus);
+        // if(getStatus == null){
+        //     console.log('hello');
+        //     let getDateh = await todoSchema.find({ heading: { $regex: key } });
+        //     if(getDateh){
+        //         res.status(200).json({success: true, messege: 'todo list...1', getDateh });
+        //     }else{
+        //         res.status(400).json({success: false, messege: 'error' });
+        //     };
+        // }else{
+        //     res.status(200).json({success: true, messege: 'todo list...2', getStatus });
+        // };
+
+
+        let data = await todoSchema.find({
+            $or: [
+                { status: { $regex: key } },
+                { heading: { $regex: key } },
+                // { creation_date: { $in: key } }
+            ]
+        });
+        if (!data) {
+            res.status(400).json({ success: false, messege: 'error' });
+        } else {
+            res.status(200).json({ success: true, messege: 'todo list...', data });
+        };
+    } catch (err) {
+        res.status(400).json({ success: false, messege: 'error', err });
+    };
+};
+
 module.exports = {
     adminRegister, adminLogin, userRegister, userLogin, createTodo,
-    editTodo, deleteTodo, allTodoList, allUsers
+    editTodo, deleteTodo, allTodoList, allUsers, logout, searchTodo
 };
