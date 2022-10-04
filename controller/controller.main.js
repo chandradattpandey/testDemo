@@ -1,6 +1,7 @@
 const Schema = require('../models/model');
 const todoSchema = require('../models/todoSchema');
-var cookie = require('cookie');
+const fs = require('fs');
+const path = require('path');
 
 async function userRegister(req, res) {
     try {
@@ -9,21 +10,25 @@ async function userRegister(req, res) {
             email: req.body.email,
             password: req.body.password,
             role: 'user',
-            registration_date: new Date()
-        });
+            registration_date: new Date(),
+            profile: {
+                data: fs.readFileSync(path.join(__dirname + "/../uploads/" + req.file.filename)),
+                contentType: 'image/*'
+            }
+        })
         let userMail = await Schema.findOne({ 'email': req.body.email });
         if (userMail) {
             res.status(400).json({ success: false, messege: 'user already registered' })
         } else {
             let result = await user.save();
             if (!result) {
-                res.status(400).json({ success: false, messege: 'user not register' });
+                res.status(400).json({ success: false, messege: 'user not register1' });
             } else {
                 res.status(200).json({ success: true, messege: 'user register', result });
             };
         };
     } catch (err) {
-        res.status(400).json({ success: false, messege: 'user not register', err });
+        res.status(400).json({ success: false, messege: 'user not register2', err });
     };
 };
 
@@ -66,7 +71,11 @@ async function createTodo(req, res) {
             heading: req.body.heading,
             description: req.body.description,
             status: req.body.status,
-            creation_date: new Date()
+            creation_date: new Date(),
+            image: {
+                data: fs.readFileSync(path.join(__dirname + "/../uploads/" + req.file.filename)),
+                contentType: 'image/*'
+            }
         });
         let data = await toDo.save();
         if (!data) {
@@ -119,8 +128,12 @@ async function adminRegister(req, res) {
             name: req.body.name,
             email: req.body.email,
             password: req.body.password,
-            role: 'admin',
-            creation_date: new Date()
+            role: 'admin', 
+            registration_date: new Date(),
+            profile: {
+                data: fs.readFileSync(path.join(__dirname + "/../uploads/" + req.file.filename)),
+                contentType: 'image/*'
+            }
         });
         let adminMail = await Schema.findOne({ 'email': req.body.email });
         if (adminMail) {
@@ -160,11 +173,11 @@ async function adminLogin(req, res) {
                     }
                 });
             } else {
-                res.status(400).json({success: false, messege: 'only admin are allowed' });
+                res.status(400).json({ success: false, messege: 'only admin are allowed' });
             };
         };
     } catch (err) {
-        res.status(400).json({success: false, messege: 'admin not found', err });
+        res.status(400).json({ success: false, messege: 'admin not found', err });
     };
 };
 
@@ -173,12 +186,26 @@ async function allTodoList(req, res) {
     try {
         let list = await todoSchema.find({});
         if (!list) {
-            res.status(400).json({success: false, messege: 'list not found' });
+            res.status(400).json({ success: false, messege: 'list not found' });
         } else {
             res.status(200).json({ success: true, messege: 'todo list', list });
         };
     } catch (err) {
-        res.status(400).json({success: false, messege: 'todo list not found', err });
+        res.status(400).json({ success: false, messege: 'todo list not found', err });
+    };
+};
+
+async function todoDetails(req, res) {
+    try {
+        let id = req.params.id;
+        let details = await todoSchema.find({ '_id': id });
+        if (!details) {
+            res.status(400).json({ success: false, messege: 'details not found' });
+        } else {
+            res.status(200).json({ success: true, messege: 'details list', details });
+        };
+    } catch (err) {
+        res.status(400).json({ success: false, messege: 'details list not found', err });
     };
 };
 
@@ -213,20 +240,6 @@ async function searchTodo(req, res) {
 
         // res.status(200).json({success: true, messege: 'todo list...', getStatus });
 
-        // let getStatus = await todoSchema.find({ status: { $regex: key } });
-        // console.log('getstatus --  ',getStatus);
-        // if(getStatus == null){
-        //     console.log('hello');
-        //     let getDateh = await todoSchema.find({ heading: { $regex: key } });
-        //     if(getDateh){
-        //         res.status(200).json({success: true, messege: 'todo list...1', getDateh });
-        //     }else{
-        //         res.status(400).json({success: false, messege: 'error' });
-        //     };
-        // }else{
-        //     res.status(200).json({success: true, messege: 'todo list...2', getStatus });
-        // };
-
 
         let data = await todoSchema.find({
             $or: [
@@ -247,5 +260,5 @@ async function searchTodo(req, res) {
 
 module.exports = {
     adminRegister, adminLogin, userRegister, userLogin, createTodo,
-    editTodo, deleteTodo, allTodoList, allUsers, logout, searchTodo
+    editTodo, deleteTodo, allTodoList,todoDetails, allUsers, logout, searchTodo
 };

@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken')
 
 const userSchema = new Schema({
-  userId : { type: String,default:`UID-${Date.now()}`},
+  userId: { type: String, default: `UID-${Date.now()}` },
   name: { type: String },
   email: { type: String },
   password: { type: String },
@@ -12,7 +12,11 @@ const userSchema = new Schema({
     type: String,
     enum: ['admin', 'user']
   },
-  registration_date: { type: Date }
+  registration_date: { type: Date },
+  profile: {
+    data: Buffer,
+    contentType: String
+  }
 });
 
 userSchema.pre("save", function (next) {
@@ -23,7 +27,7 @@ userSchema.pre("save", function (next) {
       if (saltError) {
         return next(saltError)
       } else {
-        bcrypt.hash(user.password, salt, function(hashError, hashPassword) {
+        bcrypt.hash(user.password, salt, function (hashError, hashPassword) {
           if (hashError) {
             return next(hashError)
           }
@@ -38,8 +42,8 @@ userSchema.pre("save", function (next) {
   }
 })
 
-userSchema.methods.comparePassword = function(password, callback) {
-  bcrypt.compare(password, this.password, function(error, isMatch) {
+userSchema.methods.comparePassword = function (password, callback) {
+  bcrypt.compare(password, this.password, function (error, isMatch) {
     if (error) {
       return callback(error)
     } else {
@@ -49,9 +53,9 @@ userSchema.methods.comparePassword = function(password, callback) {
 };
 
 
-userSchema.methods.generateToken = function(err, data){
+userSchema.methods.generateToken = function (err, data) {
   let user = this;
-  const token = jwt.sign({_id : user._id},'jwtSecretKey');
+  const token = jwt.sign({ _id: user._id }, 'jwtSecretKey');
   return token;
 };
 
