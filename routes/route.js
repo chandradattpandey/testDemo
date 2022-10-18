@@ -25,7 +25,8 @@ route.put('/editTodo/:id',auth.a,controller.editTodo);
 route.delete('/deleteTodo/:id',auth.a,controller.deleteTodo);
 route.get('/allTodoList',auth.a,controller.allTodoList);
 route.get('/todoDetails/:id',auth.a,controller.todoDetails);
-route.get('/allUser',auth.a,controller.allUsers);
+route.get('/allUser',controller.allUsers);
 route.get('/searchTodo/:key',auth.a,controller.searchTodo);
+route.get('/getData',controller.getData);
 
 module.exports = route;

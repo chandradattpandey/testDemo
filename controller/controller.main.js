@@ -2,6 +2,7 @@ const Schema = require('../models/model');
 const todoSchema = require('../models/todoSchema');
 const fs = require('fs');
 const path = require('path');
+const AWS = require('aws-sdk');
 
 async function userRegister(req, res) {
     try {
@@ -51,6 +52,7 @@ async function userLogin(req, res) {
                             res.status(400).json({ success: false, messege: 'password not match' });
                         } else {
                             let token = data.generateToken();
+                            res.cookie('token', token);
                             res.header('x-auth-token', token).status(200).json({ success: true, messege: 'user login', data, token });
                         };
                     };
@@ -128,7 +130,7 @@ async function adminRegister(req, res) {
             name: req.body.name,
             email: req.body.email,
             password: req.body.password,
-            role: 'admin', 
+            role: 'admin',
             registration_date: new Date(),
             profile: {
                 data: fs.readFileSync(path.join(__dirname + "/../uploads/" + req.file.filename)),
@@ -258,7 +260,50 @@ async function searchTodo(req, res) {
     };
 };
 
+
+const s3 = new AWS.S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+});
+
+const fileName = 'contacts.csv';
+
+async function awsS3(req, res) {
+    try {
+        fs.readFile(fileName, (err, data) => {
+            if (err) throw err;
+            const params = {
+                Bucket: 'testBucket', 
+                Key: `${fileName}`, 
+                Body: JSON.stringify(data, null, 2)
+            };
+            s3.upload(params, function (s3Err, data) {
+                if (s3Err) throw s3Err
+                console.log(`File uploaded successfully at ${data.Location}`)
+            });
+        });
+    } catch (err) {
+        res.status(400).json({ success: false, messege: err.messege })
+    };
+};
+
+
+async function getData(req, res){
+    try{
+       let data = await Schema.find({});
+       if(!data){
+        res.status(400).json({success:false, messege:"data not found"});
+       }else{
+        res.status(200).json({success:true,messege:"data list",data});
+       };
+    }catch(err){
+        res.status(400).json({success:false,messege:"data not found"});
+    };
+};
+
+
+
 module.exports = {
     adminRegister, adminLogin, userRegister, userLogin, createTodo,
-    editTodo, deleteTodo, allTodoList,todoDetails, allUsers, logout, searchTodo
+    editTodo, deleteTodo, allTodoList, todoDetails, allUsers, logout, searchTodo, awsS3, getData
 };

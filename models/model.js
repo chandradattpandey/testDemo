@@ -5,7 +5,11 @@ const jwt = require('jsonwebtoken')
 
 const userSchema = new Schema({
   userId: { type: String, default: `UID-${Date.now()}` },
-  name: { type: String },
+  name: {
+    type: String,
+    unique: true,
+    require: true
+  },
   email: { type: String },
   password: { type: String },
   role: {
